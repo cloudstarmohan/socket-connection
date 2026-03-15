@@ -4,6 +4,8 @@ const { Server } = require("socket.io");
 
 const app = express();
 const server = http.createServer(app);
+app.use(express.json());
+
 
 const io = new Server(server, {
   cors: { origin: "*" },
@@ -22,6 +24,8 @@ users = {
 }
 */
 let users = {};
+const roomMessages = {};
+const userIds = [];
 
 // =====================================
 // 🔥 SOCKET CONNECTION
@@ -44,6 +48,7 @@ io.on("connection", (socket) => {
     status: "online",
     lastSeen: null,
   };
+  if (!userIds.includes(userId)) userIds.push(userId);
 
   // Send full user list to new user
   socket.emit("all_user_status", users);
@@ -80,15 +85,30 @@ io.on("connection", (socket) => {
 
   socket.on("join-room", (roomId) => {
     socket.join(roomId);
+    if (roomMessages[roomId]) {
+      socket.emit("chat-history", roomMessages[roomId]);
+    }
     console.log("Joined room:", roomId);
   });
 
   socket.on("send-message", (data) => {
-    const { roomId, message, user } = data;
+    const { roomId, message, userId } = data;
+
+    if (!roomMessages[roomId]) {
+      roomMessages[roomId] = [];
+    }
+    const messageData = {
+      message,
+      userId,
+      time: new Date(),
+    };
+
+    // Save message
+    roomMessages[roomId].push(messageData);
 
     io.to(roomId).emit("receive-message", {
       message,
-      user,
+      userId,
       time: new Date(),
     });
   });
@@ -150,6 +170,36 @@ io.on("connection", (socket) => {
 // =====================================
 app.get("/users", (req, res) => {
   res.json(users);
+});
+
+app.get("/get_user_status", (req, res) => {
+  const updatedUserStatus = userIds
+    ?.map((userId) => {
+      return users[userId] ?? null;
+    })
+    .filter(Boolean);
+  res.json(updatedUserStatus);
+});
+
+app.post("/update_multi_user_status", (req, res) => {
+  Object.keys(req.body).forEach((userId) => {
+    if(users[userId]){
+      users[userId].status = req.body[userId];
+    } else{
+      userIds.push(userId);
+      users[userId] = {
+        socketId: null,
+        status: req.body[userId],
+        lastSeen: null,
+      }
+    }
+     io.emit("update_user_status", {
+      userId: userId,
+      status: users[userId].status,
+      lastSeen: users[userId].lastSeen,
+    });
+  })
+  res.send("status updated");
 });
 
 app.get("/", (req, res) => {
