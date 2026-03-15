@@ -75,6 +75,51 @@ io.on("connection", (socket) => {
   });
 
   // =====================================
+  // 🔄 JOIN ROOM CONNECTION
+  // =====================================
+
+  socket.on("join-room", (roomId) => {
+    socket.join(roomId);
+    console.log("Joined room:", roomId);
+  });
+
+  socket.on("send-message", (data) => {
+    const { roomId, message, user } = data;
+
+    io.to(roomId).emit("receive-message", {
+      message,
+      user,
+      time: new Date(),
+    });
+  });
+
+  // =====================================
+  // 🎥 VIDEO CALL
+  // =====================================
+
+  socket.on("join-room", (roomId) => {
+    socket.join(roomId);
+    console.log(`User ${socket.id} joined room ${roomId}`);
+
+    socket.to(roomId).emit("user-joined", socket.id);
+  });
+
+  // WebRTC Offer
+  socket.on("offer", (data) => {
+    socket.to(data.roomId).emit("offer", data);
+  });
+
+  // WebRTC Answer
+  socket.on("answer", (data) => {
+    socket.to(data.roomId).emit("answer", data);
+  });
+
+  // ICE Candidate
+  socket.on("ice-candidate", (data) => {
+    socket.to(data.roomId).emit("ice-candidate", data);
+  });
+
+  // =====================================
   // 🔄 GET ALL USERS (Optional Manual Call)
   // =====================================
   socket.on("get_all_users", () => {
