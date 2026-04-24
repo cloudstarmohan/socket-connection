@@ -214,6 +214,18 @@ io.on("connection", (socket) => {
       name: users[userId].name,
       email: users[userId].email,
     });
+
+    if (!roomMessages[onlineUserRoom]) {
+      roomMessages[onlineUserRoom] = [];
+    }
+    const messageData = {
+      message: "offline",
+      userId,
+      time: new Date(),
+    };
+
+    // Save message
+    roomMessages[onlineUserRoom].push(messageData);
   });
 });
 
