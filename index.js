@@ -64,6 +64,22 @@ io.on("connection", (socket) => {
 
   if (!userIds.includes(userId)) userIds.push(userId);
 
+  if (userIds.includes(userId)) {
+    if (!roomMessages[onlineUserRoom]) {
+      roomMessages[onlineUserRoom] = [];
+    }
+    const messageData = {
+      message: "offline",
+      userId,
+      time: users[userId].lastSeen,
+    };
+
+    // Save message
+    roomMessages[onlineUserRoom].push(messageData);
+
+    io.to(onlineUserRoom).emit("receive-message", messageData);
+  }
+
   if (!roomMessages[onlineUserRoom]) {
     roomMessages[onlineUserRoom] = [];
   }
@@ -214,18 +230,6 @@ io.on("connection", (socket) => {
       name: users[userId].name,
       email: users[userId].email,
     });
-
-    if (!roomMessages[onlineUserRoom]) {
-      roomMessages[onlineUserRoom] = [];
-    }
-    const messageData = {
-      message: "offline",
-      userId,
-      time: new Date(),
-    };
-
-    // Save message
-    roomMessages[onlineUserRoom].push(messageData);
   });
 });
 
