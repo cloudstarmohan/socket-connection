@@ -33,6 +33,7 @@ users = {
 let users = {};
 const roomMessages = {};
 const userIds = [];
+const onlineUserRoom = "online-users";
 
 // =====================================
 // 🔥 SOCKET CONNECTION
@@ -60,7 +61,22 @@ io.on("connection", (socket) => {
     name,
     email,
   };
+
   if (!userIds.includes(userId)) userIds.push(userId);
+
+  if (!roomMessages[onlineUserRoom]) {
+    roomMessages[onlineUserRoom] = [];
+  }
+  const messageData = {
+    message: "online",
+    userId,
+    time: new Date(),
+  };
+
+  // Save message
+  roomMessages[onlineUserRoom].push(messageData);
+
+  io.to(onlineUserRoom).emit("receive-message", messageData);
 
   // Send full user list to new user
   socket.emit("all_user_status", users);
@@ -92,6 +108,20 @@ io.on("connection", (socket) => {
       email: users[userId].email,
     });
 
+    if (!roomMessages[onlineUserRoom]) {
+      roomMessages[onlineUserRoom] = [];
+    }
+    const messageData = {
+      message: newStatus,
+      userId,
+      time: new Date(),
+    };
+
+    // Save message
+    roomMessages[onlineUserRoom].push(messageData);
+
+    io.to(onlineUserRoom).emit("receive-message", messageData);
+
     console.log(`${userId} changed status to ${newStatus}`);
   });
 
@@ -122,11 +152,7 @@ io.on("connection", (socket) => {
     // Save message
     roomMessages[roomId].push(messageData);
 
-    io.to(roomId).emit("receive-message", {
-      message,
-      userId,
-      time: new Date(),
-    });
+    io.to(roomId).emit("receive-message", messageData);
   });
 
   // =====================================
@@ -224,9 +250,9 @@ app.get("/get_user_status", (req, res) => {
 
 app.post("/update_multi_user_status", (req, res) => {
   Object.keys(req.body).forEach((userId) => {
-    if(users[userId]){
+    if (users[userId]) {
       users[userId].status = req.body[userId];
-    } else{
+    } else {
       userIds.push(userId);
       users[userId] = {
         socketId: null,
@@ -234,16 +260,16 @@ app.post("/update_multi_user_status", (req, res) => {
         lastSeen: null,
         name: null,
         email: null,
-      }
+      };
     }
-     io.emit("update_user_status", {
+    io.emit("update_user_status", {
       userId: userId,
       status: users[userId].status,
       lastSeen: users[userId].lastSeen,
       name: users[userId].name,
       email: users[userId].email,
     });
-  })
+  });
   res.send("status updated");
 });
 
