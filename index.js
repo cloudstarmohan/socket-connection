@@ -51,19 +51,6 @@ io.on("connection", (socket) => {
 
   console.log("Connected:", userId, name, email);
 
-  // =====================================
-  // ✅ SET USER ONLINE
-  // =====================================
-  users[userId] = {
-    socketId: socket.id,
-    status: "online",
-    lastSeen: null,
-    name,
-    email,
-  };
-
-  if (!userIds.includes(userId)) userIds.push(userId);
-
   if (userIds.includes(userId)) {
     if (!roomMessages[onlineUserRoom]) {
       roomMessages[onlineUserRoom] = [];
@@ -79,6 +66,21 @@ io.on("connection", (socket) => {
 
     io.to(onlineUserRoom).emit("receive-message", messageData);
   }
+
+  // =====================================
+  // ✅ SET USER ONLINE
+  // =====================================
+  users[userId] = {
+    socketId: socket.id,
+    status: "online",
+    lastSeen: null,
+    name,
+    email,
+  };
+
+  if (!userIds.includes(userId)) userIds.push(userId);
+
+
 
   if (!roomMessages[onlineUserRoom]) {
     roomMessages[onlineUserRoom] = [];
